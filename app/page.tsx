@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { t } from '@/lib/i18n';
 import { FileText, Sparkles, Zap, AlertCircle, RotateCcw, CreditCard, X } from 'lucide-react';
 import FileUpload from '@/components/FileUpload';
 import AnalysisLoading from '@/components/AnalysisLoading';
@@ -92,7 +91,7 @@ export default function Home() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="gradient-text">{t('pdf_header')}</span>
+            <span className="gradient-text">PDF Analyzer</span>
           </h1>
 
           <p className="text-lg text-text-muted max-w-2xl mx-auto mb-4">
