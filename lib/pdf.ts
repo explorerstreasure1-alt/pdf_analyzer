@@ -1,5 +1,6 @@
 import pdfParse from 'pdf-parse';
 import { PDFParseError } from './errors';
+import { logger } from './logger';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -12,7 +13,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     const data = await pdfParse(buffer);
     return data.text;
   } catch (error) {
-    console.error('PDF parsing error:', error);
+    logger.error('PDF parsing error', error instanceof Error ? error : new Error(String(error)));
     throw new PDFParseError('Failed to extract text from PDF');
   }
 }

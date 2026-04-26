@@ -2,6 +2,7 @@
  * Structured logging for production monitoring
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export enum LogLevel {
   DEBUG = 'DEBUG',
   INFO = 'INFO',
@@ -26,7 +27,7 @@ class Logger {
 
   private formatLog(entry: LogEntry): string {
     const { level, message, timestamp, context, error } = entry;
-    
+
     const parts = [
       `[${timestamp}]`,
       `[${level}]`,
@@ -67,12 +68,15 @@ class Logger {
         if (this.isDevelopment) console.debug(formatted);
         break;
       case LogLevel.INFO:
+        // eslint-disable-next-line no-console
         console.info(formatted);
         break;
       case LogLevel.WARN:
+        // eslint-disable-next-line no-console
         console.warn(formatted);
         break;
       case LogLevel.ERROR:
+        // eslint-disable-next-line no-console
         console.error(formatted);
         break;
     }

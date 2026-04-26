@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import { logger } from './logger';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -47,7 +48,7 @@ Ensure the summary is concise and actionable. Insights should be the most import
 
     return JSON.parse(content);
   } catch (error) {
-    console.error('Groq API error:', error);
+    logger.error('Groq API error', error instanceof Error ? error : new Error(String(error)));
     throw error;
   }
 }
