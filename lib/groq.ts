@@ -2,9 +2,17 @@ import Groq from 'groq-sdk';
 import { AnalysisResult } from '@/types';
 import { GroqError } from './errors';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+// FIX #6: Initialize client on each call to handle runtime env var changes
+const getGroqClient = () => {
+  const apiKey = process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    console.error('[GROQ] GROQ_API_KEY is not configured');
+    return null;
+  }
+
+  return new Groq({ apiKey });
+};
 
 const MODEL = 'llama-3.1-70b-versatile';
 
@@ -46,6 +54,11 @@ Requirements:
 - Return ONLY valid JSON, no markdown formatting, no explanation text`;
 
   try {
+    const groq = getGroqClient();
+    if (!groq) {
+      throw new GroqError('Groq client is not initialized. Check GROQ_API_KEY configuration.', 500);
+    }
+
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -62,6 +75,11 @@ Requirements:
       max_tokens: 2048,
       response_format: { type: 'json_object' },
     });
+
+    // FIX #7: Validate choices array exists and has elements
+    if (!completion.choices || completion.choices.length === 0) {
+      throw new GroqError('No choices returned from Groq API', 500);
+    }
 
     const responseContent = completion.choices[0]?.message?.content;
 
@@ -81,7 +99,7 @@ Requirements:
     if (error instanceof GroqError) {
       throw error;
     }
-    
+
     if (error instanceof SyntaxError) {
       throw new GroqError('Failed to parse Groq API response as JSON', 500);
     }

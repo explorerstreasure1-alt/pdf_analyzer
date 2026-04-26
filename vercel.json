@@ -2,15 +2,12 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "regions": ["iad1"],
+  "regions": [
+    "iad1"
+  ],
   "env": {
     "GROQ_API_KEY": {
-      "description": "Groq API Key for AI analysis"
-    }
-  },
-  "build": {
-    "env": {
-      "GROQ_API_KEY": "@groq-api-key"
+      "description": "Groq API Key for AI analysis - get from https://console.groq.com"
     }
   }
 }

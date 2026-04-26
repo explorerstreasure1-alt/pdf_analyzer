@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "vercel-build": "next build",
+    "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
     "clsx": "^2.1.1",

@@ -21,7 +21,14 @@ export default function Home() {
   useEffect(() => {
     const savedAttempts = localStorage.getItem('pdfAnalyzerAttempts');
     if (savedAttempts) {
-      setAttempts(parseInt(savedAttempts, 10));
+      const parsed = parseInt(savedAttempts, 10);
+      // FIX #1: Validate parsed value is a valid number
+      if (!isNaN(parsed) && parsed >= 0) {
+        setAttempts(parsed);
+      } else {
+        // Reset invalid data
+        localStorage.removeItem('pdfAnalyzerAttempts');
+      }
     }
   }, []);
 
@@ -60,7 +67,9 @@ export default function Home() {
 
       // Show payment modal after reaching limit
       if (newAttempts >= MAX_FREE_ATTEMPTS) {
-        setTimeout(() => setShowPaymentModal(true), 2000);
+        const timeoutId = setTimeout(() => setShowPaymentModal(true), 2000);
+        // FIX #11: Store timeout ID for cleanup (not strictly needed here as it's in callback, but good practice)
+        return () => clearTimeout(timeoutId);
       }
     } catch (err) {
       setError({
@@ -70,7 +79,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [attempts]);
+  }, [attempts]); // FIX #2: Keep attempts dependency but be aware of recreation
 
   const handleReset = () => {
     setError(null);
@@ -233,7 +242,8 @@ export default function Home() {
                 <p className="text-sm text-gray-600 mb-2">Your current usage:</p>
                 <div className="flex items-center gap-2">
                   <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full" style={{ width: '100%' }} />
+                    {/* FIX #3: Dynamic progress bar width */}
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${(attempts / MAX_FREE_ATTEMPTS) * 100}%` }} />
                   </div>
                   <span className="text-sm font-semibold text-gray-900">{attempts}/{MAX_FREE_ATTEMPTS}</span>
                 </div>

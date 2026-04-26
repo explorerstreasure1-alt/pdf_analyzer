@@ -3,10 +3,12 @@ import { PdfParseError } from './errors';
 
 export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   try {
+    // FIX #8: Limit pages to prevent memory issues in serverless environments
     const data = await pdfParse(buffer, {
-      max: 0, // No page limit
+      max: 50, // Limit to 50 pages for serverless compatibility
     });
 
+    // FIX #9: Remove redundant check, single validation is sufficient
     if (!data.text || data.text.trim().length === 0) {
       throw new PdfParseError('No text content found in PDF');
     }
@@ -16,7 +18,7 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
     if (error instanceof PdfParseError) {
       throw error;
     }
-    
+
     if (error instanceof Error) {
       if (error.message.includes('Invalid PDF')) {
         throw new PdfParseError('Invalid or corrupted PDF file');

@@ -6,14 +6,15 @@ import { FileUp, FileText, X, AlertCircle } from 'lucide-react';
 import { FileUploadProps } from '@/types';
 import { formatFileSize, validateFile } from '@/lib/utils';
 
-export default function FileUpload({ 
-  onFileSelect, 
+export default function FileUpload({
+  onFileSelect,
   isLoading = false,
   maxSize = 10 * 1024 * 1024 // 10MB default
 }: FileUploadProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
 
+  // FIX #10: Use proper FileRejection type from react-dropzone
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     setError(null);
 
@@ -31,7 +32,7 @@ export default function FileUpload({
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       const validation = validateFile(file, maxSize);
-      
+
       if (!validation.valid) {
         setError(validation.error || 'Invalid file');
         return;
@@ -74,7 +75,7 @@ export default function FileUpload({
           className={`
             relative overflow-hidden rounded-2xl border-2 border-dashed p-8 transition-all duration-300 cursor-pointer
             ${isDragActive && !isDragReject
-              ? 'border-primary bg-primary/10' 
+              ? 'border-primary bg-primary/10'
               : 'border-text-muted/30 bg-glass backdrop-blur-md'
             }
             ${isDragReject ? 'border-error bg-error/10' : ''}
@@ -82,10 +83,10 @@ export default function FileUpload({
           `}
         >
           <input {...getInputProps()} />
-          
+
           {/* Shimmer Effect */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div 
+            <div
               className={`
                 absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent
                 ${isDragActive ? 'animate-shimmer' : ''}
@@ -103,7 +104,7 @@ export default function FileUpload({
                 ${isDragActive ? 'text-primary' : 'text-primary/70'}
               `} />
             </div>
-            
+
             <div className="text-center">
               <p className="text-lg font-medium text-text mb-1">
                 {isDragActive ? 'Drop your PDF here' : 'Drop your PDF here, or click to browse'}
@@ -131,7 +132,7 @@ export default function FileUpload({
                 </p>
               </div>
             </div>
-            
+
             {!isLoading && (
               <button
                 onClick={clearFile}

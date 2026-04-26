@@ -4,7 +4,12 @@ import { analyzeTextWithGroq } from '@/lib/groq';
 import { handleError, FileValidationError, PdfParseError, ApiError } from '@/lib/errors';
 import { AnalysisResponse } from '@/types';
 
-export const maxDuration = 60;
+// Force Node.js runtime for pdf-parse compatibility
+export const runtime = 'nodejs';
+
+// FIX #4: Vercel Hobby tier has 10s timeout, Pro tier has 60s
+// Using 10s to ensure compatibility with free tier
+export const maxDuration = 10;
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -30,7 +35,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<AnalysisR
     }
 
     // Convert file to buffer
-    const bytes = await file.arrayBuffer();
+    // FIX #5: Add error handling for arrayBuffer conversion
+    let bytes: ArrayBuffer;
+    try {
+      bytes = await file.arrayBuffer();
+    } catch (error) {
+      throw new FileValidationError('Failed to read file data');
+    }
     const buffer = Buffer.from(bytes);
 
     // Check if buffer is valid PDF (starts with %PDF)
