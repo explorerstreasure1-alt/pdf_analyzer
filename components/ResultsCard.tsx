@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Check, Copy, CheckCircle, Lightbulb, ListTodo } from 'lucide-react';
 import { AnalysisResult } from '@/types';
-import { cn } from '@/lib/i18n';
+// FIX #1: Removed unused 'cn' import - it was not used in this component
 
 interface ResultsCardProps {
   result: AnalysisResult;
