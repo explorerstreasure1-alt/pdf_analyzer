@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
+const inter = Inter({ subsets: ['latin'] });
+
 export const metadata: Metadata = {
-  title: 'PDF Analyzer - AI Document Insights',
-  description: 'Transform your PDFs into actionable insights with Groq-powered AI analysis. Get summaries, key insights, and action items instantly.',
-  keywords: ['PDF', 'AI', 'analysis', 'Groq', 'document', 'insights'],
+  title: 'DeepPDF Analyzer - AI-Powered PDF Analysis',
+  description: 'Analyze your PDF documents with AI-powered insights using Groq and Llama 3.1',
 };
 
 export default function RootLayout({
@@ -14,12 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>📄</text></svg>" />
-      </head>
-      <body className="min-h-screen bg-white text-gray-900 antialiased">
-        {children}
-      </body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }

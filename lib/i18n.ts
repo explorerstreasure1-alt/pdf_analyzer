@@ -1,5 +1,3 @@
-export const translations: { [key: string]: string } = {
-  pdf_header: 'PDF Analyzer',
-};
-
-export const t = (key: string): string => translations[key] ?? key;
+export function cn(...classes: (string | undefined | null | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}

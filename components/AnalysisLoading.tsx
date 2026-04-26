@@ -1,50 +1,39 @@
 'use client';
 
-import React from 'react';
-import { Zap } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/i18n';
 
-export default function AnalysisLoading() {
+interface AnalysisLoadingProps {
+  message?: string;
+}
+
+export default function AnalysisLoading({ message = 'Analyzing with Groq Speed...' }: AnalysisLoadingProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12">
-      {/* Animated Spinner */}
-      <div className="relative mb-6">
-        {/* Outer ring */}
-        <div className="absolute inset-0 rounded-full border-4 border-primary/20" />
-        
-        {/* Spinning gradient ring */}
-        <div className="relative h-16 w-16">
-          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary animate-spin" />
-          <div 
-            className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary/50 animate-spin"
-            style={{ animationDuration: '1.5s', animationDirection: 'reverse' }}
-          />
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="bg-surface/50 backdrop-blur-md border border-primary/30 rounded-2xl p-12 text-center">
+        <div className="flex flex-col items-center gap-6">
+          <div className="relative">
+            <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
+            <div className="relative p-6 bg-primary/10 rounded-full">
+              <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+              <p className="text-text text-lg font-medium">{message}</p>
+              <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+            </div>
+            <p className="text-text-muted text-sm">
+              Extracting insights and generating action items
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-primary/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
         </div>
-        
-        {/* Center icon */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Zap className="h-6 w-6 text-primary animate-pulse" />
-        </div>
-      </div>
-
-      {/* Loading Text */}
-      <div className="text-center space-y-2">
-        <p className="text-lg font-medium text-text">
-          Analyzing with Groq Speed...
-        </p>
-        <p className="text-sm text-text-muted">
-          Our AI is extracting insights from your document
-        </p>
-      </div>
-
-      {/* Progress dots */}
-      <div className="mt-6 flex gap-2">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-2 w-2 rounded-full bg-primary animate-pulse-glow"
-            style={{ animationDelay: `${i * 0.2}s` }}
-          />
-        ))}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from 'tailwindcss';
 
 const config: Config = {
   content: [
@@ -9,38 +9,30 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#FFFFFF',
-        primary: '#2563EB',
-        'primary-dark': '#1D4ED8',
-        'primary-light': '#3B82F6',
-        text: '#1F2937',
-        'text-muted': '#6B7280',
-        surface: '#F9FAFB',
-        'surface-light': '#F3F4F6',
-        error: '#DC2626',
-        success: '#059669',
+        background: '#121212',
+        surface: '#1E1E1E',
+        primary: '#D4AF37',
+        'primary-hover': '#B8962E',
+        text: '#EDEDED',
+        'text-muted': '#A0A0A0',
+        border: '#2A2A2A',
+      },
+      backdropBlur: {
+        xs: '2px',
       },
       animation: {
         'shimmer': 'shimmer 2s linear infinite',
-        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'spin-slow': 'spin 3s linear infinite',
       },
       keyframes: {
         shimmer: {
-          '0%': { transform: 'translateX(-100%)' },
-          '100%': { transform: 'translateX(100%)' },
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
         },
-        'pulse-glow': {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.5' },
-        },
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'glass': 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))',
       },
     },
   },
   plugins: [],
-}
+};
 
-export default config
+export default config;

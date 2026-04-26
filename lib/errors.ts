@@ -9,54 +9,26 @@ export class AppError extends Error {
   }
 }
 
-export class FileValidationError extends AppError {
-  constructor(message: string) {
-    super(message, 'FILE_VALIDATION_ERROR', 400);
-    this.name = 'FileValidationError';
+export class FileSizeError extends AppError {
+  constructor(message: string = 'File size exceeds limit') {
+    super(message, 'FILE_SIZE_ERROR', 413);
   }
 }
 
-export class PdfParseError extends AppError {
+export class InvalidFileTypeError extends AppError {
+  constructor(message: string = 'Invalid file type') {
+    super(message, 'INVALID_FILE_TYPE', 400);
+  }
+}
+
+export class PDFParseError extends AppError {
   constructor(message: string = 'Failed to parse PDF') {
-    super(message, 'PDF_PARSE_ERROR', 422);
-    this.name = 'PdfParseError';
+    super(message, 'PDF_PARSE_ERROR', 500);
   }
 }
 
-export class ApiError extends AppError {
-  constructor(message: string, statusCode: number = 500) {
-    super(message, 'API_ERROR', statusCode);
-    this.name = 'ApiError';
+export class GroqAPIError extends AppError {
+  constructor(message: string = 'Groq API error') {
+    super(message, 'GROQ_API_ERROR', 500);
   }
-}
-
-export class GroqError extends AppError {
-  constructor(message: string, statusCode: number = 500) {
-    super(message, 'GROQ_ERROR', statusCode);
-    this.name = 'GroqError';
-  }
-}
-
-export function handleError(error: unknown): { message: string; code: string; statusCode: number } {
-  if (error instanceof AppError) {
-    return {
-      message: error.message,
-      code: error.code,
-      statusCode: error.statusCode,
-    };
-  }
-
-  if (error instanceof Error) {
-    return {
-      message: error.message,
-      code: 'UNKNOWN_ERROR',
-      statusCode: 500,
-    };
-  }
-
-  return {
-    message: 'An unexpected error occurred',
-    code: 'UNKNOWN_ERROR',
-    statusCode: 500,
-  };
 }

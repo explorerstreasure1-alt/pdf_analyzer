@@ -2,12 +2,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "regions": [
-    "iad1"
-  ],
-  "env": {
-    "GROQ_API_KEY": {
-      "description": "Groq API Key for AI analysis - get from https://console.groq.com"
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/analyze/route.ts": {
+      "maxDuration": 60
     }
   }
 }

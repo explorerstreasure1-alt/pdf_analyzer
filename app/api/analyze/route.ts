@@ -1,101 +1,147 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractTextFromPdf } from '@/lib/pdf';
-import { analyzeTextWithGroq } from '@/lib/groq';
-import { handleError, FileValidationError, PdfParseError, ApiError } from '@/lib/errors';
-import { AnalysisResponse } from '@/types';
+import { extractTextFromPDF, validatePDFFile, validateFileSize } from '@/lib/pdf';
+import { analyzePDFText } from '@/lib/groq';
+import { AnalysisResponse, AnalysisResult } from '@/types';
+import { FileSizeError, InvalidFileTypeError, PDFParseError, GroqAPIError } from '@/lib/errors';
+import { validateEnvVars } from '@/lib/env';
+import { defaultRateLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
+import { withRetry } from '@/lib/retry';
 
-// Force Node.js runtime for pdf-parse compatibility
-export const runtime = 'nodejs';
+export const runtime = 'edge';
+export const maxDuration = 60;
 
-// FIX #4: Vercel Hobby tier has 10s timeout, Pro tier has 60s
-// Using 10s to ensure compatibility with free tier
-export const maxDuration = 10;
+// Validate environment variables at runtime
+validateEnvVars();
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export async function POST(request: NextRequest) {
+  // Get client IP for rate limiting
+  const ip = request.headers.get('x-forwarded-for') ||
+    request.headers.get('x-real-ip') ||
+    'unknown';
 
-export async function POST(request: NextRequest): Promise<NextResponse<AnalysisResponse>> {
+  // Check rate limit
+  const rateLimitResult = defaultRateLimiter.check(ip);
+  if (!rateLimitResult.allowed) {
+    logger.warn('Rate limit exceeded', { ip });
+    return NextResponse.json(
+      { success: false, error: 'Too many requests. Please try again later.' } as AnalysisResponse,
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+          'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString(),
+        }
+      }
+    );
+  }
+
   try {
-    // Parse form data
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    logger.info('Starting PDF analysis', { ip });
 
-    // Validate file exists
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
     if (!file) {
-      throw new FileValidationError('No file provided');
+      return NextResponse.json(
+        { success: false, error: 'No file provided' } as AnalysisResponse,
+        { status: 400 }
+      );
     }
 
     // Validate file type
-    if (file.type !== 'application/pdf') {
-      throw new FileValidationError('Only PDF files are supported');
+    if (!validatePDFFile(file)) {
+      throw new InvalidFileTypeError('Only PDF files are allowed');
     }
 
     // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      throw new FileValidationError(`File size exceeds 10MB limit (${(file.size / 1024 / 1024).toFixed(1)}MB)`);
+    if (!validateFileSize(file)) {
+      throw new FileSizeError('File size exceeds 10MB limit');
     }
 
     // Convert file to buffer
-    // FIX #5: Add error handling for arrayBuffer conversion
-    let bytes: ArrayBuffer;
-    try {
-      bytes = await file.arrayBuffer();
-    } catch (error) {
-      throw new FileValidationError('Failed to read file data');
-    }
-    const buffer = Buffer.from(bytes);
-
-    // Check if buffer is valid PDF (starts with %PDF)
-    const header = buffer.slice(0, 5).toString('ascii');
-    if (!header.startsWith('%PDF')) {
-      throw new FileValidationError('Invalid PDF file format');
-    }
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
     // Extract text from PDF
-    let text: string;
-    try {
-      text = await extractTextFromPdf(buffer);
-    } catch (error) {
-      if (error instanceof PdfParseError) {
-        throw error;
-      }
-      throw new PdfParseError('Failed to extract text from PDF');
-    }
+    const text = await extractTextFromPDF(buffer);
 
-    // Validate extracted text
     if (!text || text.trim().length === 0) {
-      throw new PdfParseError('No text content found in PDF');
+      throw new PDFParseError('No text could be extracted from the PDF');
     }
 
-    if (text.length < 50) {
-      throw new PdfParseError('PDF contains insufficient text for analysis (minimum 50 characters)');
-    }
-
-    // Analyze with Groq
-    let result;
-    try {
-      result = await analyzeTextWithGroq(text);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
+    // Analyze text with Groq with retry logic
+    const analysis = await withRetry(
+      () => analyzePDFText(text),
+      {
+        maxAttempts: 3,
+        initialDelayMs: 1000,
+        maxDelayMs: 5000,
+        backoffMultiplier: 2,
       }
-      throw new ApiError('AI analysis failed. Please try again later.', 500);
+    );
+
+    // Validate response structure
+    if (!analysis.summary || !analysis.insights || !analysis.actionItems) {
+      throw new GroqAPIError('Invalid response from AI analysis');
     }
 
-    // Return successful response
-    return NextResponse.json({
-      success: true,
-      data: result,
-    }, { status: 200 });
+    const result: AnalysisResult = {
+      summary: analysis.summary,
+      insights: analysis.insights,
+      actionItems: analysis.actionItems,
+    };
 
+    logger.info('PDF analysis completed successfully', { ip, fileName: file.name });
+
+    return NextResponse.json(
+      { success: true, data: result } as AnalysisResponse,
+      {
+        status: 200,
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+        }
+      }
+    );
   } catch (error) {
-    const { message, code, statusCode } = handleError(error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Analysis error', error instanceof Error ? error : new Error(errorMessage), { ip });
 
-    return NextResponse.json({
-      success: false,
-      error: {
-        message,
-        code,
-      },
-    }, { status: statusCode });
+    if (error instanceof FileSizeError) {
+      return NextResponse.json(
+        { success: false, error: error.message } as AnalysisResponse,
+        { status: 413 }
+      );
+    }
+
+    if (error instanceof InvalidFileTypeError) {
+      return NextResponse.json(
+        { success: false, error: error.message } as AnalysisResponse,
+        { status: 400 }
+      );
+    }
+
+    if (error instanceof PDFParseError || error instanceof GroqAPIError) {
+      return NextResponse.json(
+        { success: false, error: error.message } as AnalysisResponse,
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: false, error: 'An unexpected error occurred' } as AnalysisResponse,
+      {
+        status: 500,
+        headers: {
+          'X-RateLimit-Limit': '10',
+          'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+        }
+      }
+    );
   }
 }

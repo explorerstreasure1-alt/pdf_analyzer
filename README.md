@@ -1,155 +1,160 @@
-# PDF Analyzer - AI Document Insights
+# DeepPDF Analyzer
 
-A production-ready Next.js application that transforms PDF documents into actionable insights using Groq's high-speed AI inference.
+A production-ready Next.js application that analyzes PDF documents using AI-powered insights. Built with Groq's Llama 3.1-70B-Versatile model for fast, intelligent document analysis.
 
 ## Features
 
-- **Premium Dark UI** - High-contrast design with gold (#D4AF37) accents
-- **Glass-morphism Dropzone** - Modern drag-and-drop file upload with shimmer effects
-- **AI-Powered Analysis** - Groq SDK integration with llama-3.1-70b-versatile model
-- **Structured Results** - Summary, 3 key insights, and 5 action items
-- **Edge Runtime** - Optimized for Vercel Edge Functions
-- **Robust Error Handling** - File validation, size limits, and API timeout handling
+- **Premium Dark Theme**: High-contrast UI with glass-morphism effects and gold accents
+- **PDF Upload**: Drag-and-drop file upload with validation (PDF only, max 10MB)
+- **AI Analysis**: Extracts text from PDFs and generates:
+  - A sharp, one-sentence summary
+  - 3 key insights
+  - 5 actionable items
+- **Edge Functions**: Optimized for Vercel Edge deployment
+- **TypeScript**: Full type safety throughout the application
+- **Responsive Design**: Works seamlessly on desktop and mobile
 
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
-- **Styling**: Tailwind CSS with custom theme
-- **Icons**: Lucide React
-- **PDF Parsing**: pdf-parse
-- **AI Engine**: Groq SDK
+- **Styling**: Tailwind CSS with custom premium dark theme
+- **Icons**: Lucide-React
 - **File Upload**: react-dropzone
-- **Runtime**: Edge Functions
+- **PDF Processing**: pdf-parse (server-side)
+- **AI Engine**: Groq SDK with Llama 3.1-70B-Versatile
+- **Deployment**: Vercel Edge Functions
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- A Groq API key (get one at [console.groq.com](https://console.groq.com))
+- Node.js 18+ installed
+- A Groq API key ([get one here](https://console.groq.com/))
 
 ### Installation
 
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+1. Clone the repository and navigate to the project directory
 
-2. **Configure environment variables**:
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Edit `.env.local` and add your Groq API key:
-   ```
-   GROQ_API_KEY=your_groq_api_key_here
-   ```
-
-3. **Run the development server**:
-   ```bash
-   npm run dev
-   ```
-
-4. **Open in browser**: Navigate to `http://localhost:3000`
-
-## Usage
-
-1. Drag and drop a PDF file into the upload zone (max 10MB)
-2. Wait for the AI analysis to complete
-3. View the structured results: summary, key insights, and action items
-4. Click "Copy to Clipboard" to save the results
-
-## API Endpoint
-
-### POST `/api/analyze`
-
-Analyzes a PDF document and returns structured insights.
-
-**Request**: `multipart/form-data` with a `file` field containing the PDF
-
-**Response**:
-```json
-{
-  "success": true,
-  "data": {
-    "summary": "One-sentence summary",
-    "keyInsights": ["Insight 1", "Insight 2", "Insight 3"],
-    "actionItems": ["Action 1", "Action 2", "Action 3", "Action 4", "Action 5"]
-  }
-}
+2. Install dependencies:
+```bash
+npm install
 ```
+
+3. Create a `.env.local` file in the root directory:
+```bash
+cp .env.example .env.local
+```
+
+4. Add your Groq API key to `.env.local`:
+```
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+5. Run the development server:
+```bash
+npm run dev
+```
+
+6. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Deployment
+
+### Vercel
+
+1. Push your code to GitHub
+2. Import the project in Vercel
+3. Add your `GROQ_API_KEY` as an environment variable in Vercel settings
+4. Deploy
+
+The application is configured for Vercel Edge Functions for optimal performance.
 
 ## Project Structure
 
 ```
 ├── app/
-│   ├── api/analyze/      # API route for PDF analysis
-│   ├── globals.css       # Global styles & Tailwind
-│   ├── layout.tsx        # Root layout
-│   └── page.tsx          # Main application page
+│   ├── api/
+│   │   └── analyze/
+│   │       └── route.ts      # API endpoint for PDF analysis
+│   ├── globals.css          # Global styles and Tailwind
+│   ├── layout.tsx           # Root layout with metadata
+│   └── page.tsx             # Main page with user flow
 ├── components/
-│   ├── FileUpload.tsx    # Glass-morphism dropzone
-│   ├── AnalysisLoading.tsx # Loading spinner
-│   └── ResultsCard.tsx   # Results display with shimmer
+│   ├── AnalysisLoading.tsx  # Loading spinner component
+│   ├── FileUpload.tsx       # Drag-and-drop file upload
+│   └── ResultsCard.tsx      # Results display with shimmer effect
 ├── lib/
-│   ├── errors.ts         # Error handling classes
-│   ├── groq.ts          # Groq SDK integration
-│   ├── pdf.ts           # PDF text extraction
-│   └── utils.ts         # Utility functions
+│   ├── errors.ts            # Custom error classes
+│   ├── groq.ts              # Groq SDK integration
+│   ├── i18n.ts              # Utility functions
+│   └── pdf.ts               # PDF parsing utilities
 ├── types/
-│   └── index.ts         # TypeScript interfaces
-├── package.json
-├── tailwind.config.ts   # Custom theme configuration
-└── next.config.js       # Next.js configuration
+│   └── index.ts             # TypeScript type definitions
+└── public/                  # Static assets
 ```
 
-## Configuration
+## API Endpoint
 
-### Customizing Theme Colors
+### POST /api/analyze
 
-Edit `tailwind.config.ts`:
+Analyzes a PDF document and returns AI-generated insights.
 
-```typescript
-colors: {
-  background: '#121212',  // Main background
-  primary: '#D4AF37',      // Gold accent
-  text: '#EDEDED',         // Primary text
-  surface: '#1E1E1E',      // Card backgrounds
+**Request:**
+- Method: POST
+- Content-Type: multipart/form-data
+- Body: FormData with `file` field (PDF)
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "summary": "One-sentence summary",
+    "insights": [
+      "Key insight 1",
+      "Key insight 2",
+      "Key insight 3"
+    ],
+    "actionItems": [
+      "Action item 1",
+      "Action item 2",
+      "Action item 3",
+      "Action item 4",
+      "Action item 5"
+    ]
+  }
 }
 ```
 
-### Changing Model
-
-Edit `lib/groq.ts`:
-
-```typescript
-const MODEL = 'llama-3.1-70b-versatile'; // Change to your preferred model
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Error message"
+}
 ```
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Push to GitHub
-2. Import to Vercel
-3. Add `GROQ_API_KEY` to environment variables
-4. Deploy
-
-### Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `GROQ_API_KEY` | Your Groq API key | Yes |
 
 ## Error Handling
 
-The application handles these error scenarios:
+The application includes robust error handling for:
+- File size limits (10MB max)
+- Invalid file types (PDF only)
+- PDF parsing failures
+- Groq API errors
+- Network timeouts
 
-- **File Validation**: Invalid file types, size limits
-- **PDF Parsing**: Corrupted or scanned PDFs
-- **API Errors**: Rate limits, timeouts, invalid responses
-- **Network Issues**: Connection failures
+## Performance
+
+- Edge Functions for fast response times
+- File size limits to prevent memory issues
+- Optimized PDF parsing
+- Efficient API calls with timeouts
 
 ## License
 
 MIT
+
+## Acknowledgments
+
+- Powered by [Groq](https://groq.com/) and Llama 3.1-70B-Versatile
+- Built with [Next.js](https://nextjs.org/)
+- Icons by [Lucide](https://lucide.dev/)

@@ -1,24 +1,56 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    unoptimized: true,
-  },
-  // Ensure trailing slashes for consistency
-  trailingSlash: true,
-  // Disable eslint during builds (optional, remove if you want strict checking)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Disable typescript errors during builds (optional, remove if you want strict checking)
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // FIX #12, #13: Remove standalone output - conflicts with Vercel serverless deployment
-  // Vercel handles its own build optimization
   experimental: {
-    // Optimize package imports for better build performance
-    optimizePackageImports: ['lucide-react'],
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
-}
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+    responseLimit: '10mb',
+  },
+  // Production optimizations
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
+  // Image optimization
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
+  // Headers for security and performance
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin'
+          },
+        ],
+      },
+    ];
+  },
+  // Environment variable validation at build time
+  env: {
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+  },
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

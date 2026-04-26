@@ -1,47 +1,33 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { FileText, Sparkles, Zap, AlertCircle, RotateCcw, CreditCard, X } from 'lucide-react';
+import { useState } from 'react';
 import FileUpload from '@/components/FileUpload';
-import AnalysisLoading from '@/components/AnalysisLoading';
 import ResultsCard from '@/components/ResultsCard';
-import { AnalysisResult, AnalysisError } from '@/types';
-
-const PAYMENT_URL = 'https://projeai.lemonsqueezy.com/checkout/buy/edea2ac0-c5be-4708-a7c4-a1df1a64308b';
-const MAX_FREE_ATTEMPTS = 3;
+import AnalysisLoading from '@/components/AnalysisLoading';
+import { AnalysisResult } from '@/types';
+import { Sparkles, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<AnalysisError | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [attempts, setAttempts] = useState(0);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
-  // Load attempts from localStorage on mount
-  useEffect(() => {
-    const savedAttempts = localStorage.getItem('pdfAnalyzerAttempts');
-    if (savedAttempts) {
-      const parsed = parseInt(savedAttempts, 10);
-      // FIX #1: Validate parsed value is a valid number
-      if (!isNaN(parsed) && parsed >= 0) {
-        setAttempts(parsed);
-      } else {
-        // Reset invalid data
-        localStorage.removeItem('pdfAnalyzerAttempts');
-      }
-    }
-  }, []);
-
-  const handleFileSelect = useCallback(async (file: File) => {
-    // Check if user has exceeded free attempts
-    if (attempts >= MAX_FREE_ATTEMPTS) {
-      setShowPaymentModal(true);
-      return;
-    }
-
-    setIsLoading(true);
+  const handleFileSelect = async (file: File) => {
+    setSelectedFile(file);
     setError(null);
     setResult(null);
+    setRetryCount(0);
+    setIsProcessing(true);
+
+    await analyzeFile(file);
+  };
+
+  const analyzeFile = async (file: File, attempt = 1) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 65000); // 65s timeout (slightly more than API maxDuration)
 
     try {
       const formData = new FormData();
@@ -50,138 +36,139 @@ export default function Home() {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || 'Analysis failed');
+      if (!response.ok) {
+        // Handle rate limiting specifically
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        throw new Error(data.error || 'Analysis failed');
       }
 
       setResult(data.data);
-
-      // Increment attempts on successful analysis
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      localStorage.setItem('pdfAnalyzerAttempts', newAttempts.toString());
-
-      // Show payment modal after reaching limit
-      if (newAttempts >= MAX_FREE_ATTEMPTS) {
-        const timeoutId = setTimeout(() => setShowPaymentModal(true), 2000);
-        // FIX #11: Store timeout ID for cleanup (not strictly needed here as it's in callback, but good practice)
-        return () => clearTimeout(timeoutId);
-      }
+      setRetryCount(0);
     } catch (err) {
-      setError({
-        message: err instanceof Error ? err.message : 'An unexpected error occurred',
-        code: 'ANALYSIS_ERROR',
-      });
+      clearTimeout(timeoutId);
+
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+
+      // Retry on network errors or timeouts (up to 2 retries)
+      if (attempt < 3 && (errorMessage.includes('fetch') || errorMessage.includes('timeout') || errorMessage.includes('AbortError'))) {
+        setRetryCount(attempt);
+        setIsRetrying(true);
+
+        // Exponential backoff: 2s, 4s
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+
+        setIsRetrying(false);
+        await analyzeFile(file, attempt + 1);
+        return;
+      }
+
+      setError(errorMessage);
+      setSelectedFile(null);
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
+      setIsRetrying(false);
     }
-  }, [attempts]); // FIX #2: Keep attempts dependency but be aware of recreation
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    setResult(null);
+    setError(null);
+  };
 
   const handleReset = () => {
-    setError(null);
+    setSelectedFile(null);
     setResult(null);
-    setIsLoading(false);
+    setError(null);
   };
 
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background gradient */}
-      <div className="absolute inset-0 bg-gradient-radial from-surface via-background to-background opacity-50" />
-
-      {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
-
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+    <main className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="gradient-text">PDF Analyzer</span>
-          </h1>
-
-          <p className="text-lg text-text-muted max-w-2xl mx-auto mb-4">
-            Transform your documents into actionable insights. Upload a PDF and get AI-powered
-            summaries, key insights, and action items in seconds.
-          </p>
-
-          {/* Attempts Counter */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-surface-light text-sm">
-            <span className="text-text-muted">Free attempts:</span>
-            <span className="font-semibold text-primary">
-              {attempts}/{MAX_FREE_ATTEMPTS}
-            </span>
+        <div className="text-center mb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 bg-primary/20 rounded-xl">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold text-text">
+              DeepPDF<span className="text-primary">.net</span>
+            </h1>
           </div>
+          <p className="text-text-muted text-lg max-w-2xl mx-auto">
+            Transform your PDF documents into actionable insights with AI-powered analysis
+          </p>
         </div>
 
-        {/* Main Content Card */}
-        <div className="rounded-3xl bg-surface/50 backdrop-blur-sm border border-surface-light p-6 sm:p-8 lg:p-10 shadow-2xl">
-          {/* Feature Badges */}
-          {!result && !isLoading && (
-            <div className="flex flex-wrap justify-center gap-3 mb-8">
-              {[
-                { icon: FileText, label: 'PDF Support' },
-                { icon: Sparkles, label: 'AI Summary' },
-                { icon: Zap, label: 'Lightning Fast' },
-              ].map((feature, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-surface-light text-sm text-text-muted"
-                >
-                  <feature.icon className="h-4 w-4 text-primary" />
-                  {feature.label}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Error Display */}
-          {error && !isLoading && (
-            <div className="mb-6 flex items-start gap-3 rounded-xl bg-error/10 border border-error/30 p-4">
-              <AlertCircle className="h-5 w-5 text-error flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-error mb-1">Analysis Failed</p>
-                <p className="text-sm text-text-muted">{error.message}</p>
-              </div>
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-light text-sm text-text hover:text-primary transition-colors"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Try Again
-              </button>
-            </div>
-          )}
-
-          {/* File Upload or Loading */}
-          {!result ? (
-            isLoading ? (
-              <AnalysisLoading />
-            ) : (
+        {/* Main Content */}
+        <div className="space-y-8">
+          {!result && !isProcessing && (
+            <>
               <FileUpload
                 onFileSelect={handleFileSelect}
-                isLoading={isLoading}
-                maxSize={10 * 1024 * 1024}
-              />
-            )
-          ) : (
-            /* Results */
-            <div className="space-y-6">
-              <ResultsCard
-                result={result}
-                isLoading={false}
+                selectedFile={selectedFile}
+                onClearFile={handleClearFile}
+                isProcessing={isProcessing}
               />
 
-              <div className="flex justify-center">
+              {error && (
+                <div className="max-w-2xl mx-auto bg-red-500/10 border border-red-500/30 rounded-xl p-6 text-red-400 text-center animate-in fade-in">
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <span className="font-medium">Analysis Failed</span>
+                  </div>
+                  <p className="text-sm mb-4">{error}</p>
+                  {retryCount > 0 && (
+                    <p className="text-xs text-red-300 mb-4">
+                      Attempted {retryCount} {retryCount === 1 ? 'retry' : 'retries'}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => selectedFile && handleFileSelect(selectedFile)}
+                    className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-lg transition-colors flex items-center gap-2 mx-auto text-sm"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {selectedFile && !isProcessing && (
+                <div className="max-w-2xl mx-auto text-center">
+                  <button
+                    onClick={handleFileSelect}
+                    className="px-8 py-3 bg-primary hover:bg-primary-hover text-background font-semibold rounded-xl transition-colors duration-200"
+                  >
+                    Analyze PDF
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {isProcessing && <AnalysisLoading message={isRetrying ? `Retrying... (Attempt ${retryCount + 1}/3)` : 'Analyzing with Groq Speed...'} />}
+
+          {result && !isProcessing && (
+            <div className="space-y-6">
+              <ResultsCard result={result} />
+
+              <div className="text-center">
                 <button
                   onClick={handleReset}
-                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-surface-light text-text hover:bg-primary/20 hover:text-primary transition-all duration-200 font-medium"
+                  className="px-6 py-2 bg-surface hover:bg-surface/80 border border-border text-text rounded-lg transition-colors duration-200 flex items-center gap-2 mx-auto"
                 >
-                  <RotateCcw className="h-4 w-4" />
-                  Analyze Another Document
+                  <FileText className="w-4 h-4" />
+                  Analyze Another PDF
                 </button>
               </div>
             </div>
@@ -189,87 +176,10 @@ export default function Home() {
         </div>
 
         {/* Footer */}
-        <footer className="mt-12 text-center">
-          <p className="text-sm text-text-muted">
-            Powered by{' '}
-            <a
-              href="https://groq.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:text-primary-dark transition-colors"
-            >
-              Groq
-            </a>{' '}
-            and{' '}
-            <a
-              href="https://nextjs.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:text-primary-dark transition-colors"
-            >
-              Next.js
-            </a>
-          </p>
+        <footer className="mt-16 text-center text-text-muted text-sm">
+          <p>Powered by Groq & Llama 3.1-70B-Versatile</p>
         </footer>
       </div>
-
-      {/* Payment Modal */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Upgrade Required</h3>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="h-5 w-5 text-gray-500" />
-              </button>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div className="flex items-start gap-3">
-                <CreditCard className="h-6 w-6 text-primary flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-medium text-gray-900 mb-1">Free Limit Reached</p>
-                  <p className="text-sm text-gray-600">
-                    You've used your {MAX_FREE_ATTEMPTS} free analyses. Upgrade to continue using PDF Analyzer with unlimited access.
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-sm text-gray-600 mb-2">Your current usage:</p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    {/* FIX #3: Dynamic progress bar width */}
-                    <div className="h-full bg-primary rounded-full" style={{ width: `${(attempts / MAX_FREE_ATTEMPTS) * 100}%` }} />
-                  </div>
-                  <span className="text-sm font-semibold text-gray-900">{attempts}/{MAX_FREE_ATTEMPTS}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <a
-                href={PAYMENT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-dark transition-colors"
-              >
-                <CreditCard className="h-5 w-5" />
-                Upgrade Now
-              </a>
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="w-full px-6 py-3 text-gray-600 hover:bg-gray-100 rounded-xl font-medium transition-colors"
-              >
-                Maybe Later
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

@@ -1,31 +1,27 @@
 import pdfParse from 'pdf-parse';
-import { PdfParseError } from './errors';
+import { PDFParseError } from './errors';
 
-export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  try {
-    // FIX #8: Limit pages to prevent memory issues in serverless environments
-    const data = await pdfParse(buffer, {
-      max: 50, // Limit to 50 pages for serverless compatibility
-    });
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-    // FIX #9: Remove redundant check, single validation is sufficient
-    if (!data.text || data.text.trim().length === 0) {
-      throw new PdfParseError('No text content found in PDF');
-    }
-
-    return data.text.trim();
-  } catch (error) {
-    if (error instanceof PdfParseError) {
-      throw error;
-    }
-
-    if (error instanceof Error) {
-      if (error.message.includes('Invalid PDF')) {
-        throw new PdfParseError('Invalid or corrupted PDF file');
-      }
-      throw new PdfParseError(`PDF parsing failed: ${error.message}`);
-    }
-
-    throw new PdfParseError('Unknown error while parsing PDF');
+export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  if (buffer.length > MAX_FILE_SIZE) {
+    throw new Error('File size exceeds 10MB limit');
   }
+
+  try {
+    const data = await pdfParse(buffer);
+    return data.text;
+  } catch (error) {
+    console.error('PDF parsing error:', error);
+    throw new PDFParseError('Failed to extract text from PDF');
+  }
+}
+
+export function validatePDFFile(file: File): boolean {
+  const validTypes = ['application/pdf'];
+  return validTypes.includes(file.type);
+}
+
+export function validateFileSize(file: File): boolean {
+  return file.size <= MAX_FILE_SIZE;
 }
