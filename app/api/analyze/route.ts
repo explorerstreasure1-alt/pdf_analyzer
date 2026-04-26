@@ -8,7 +8,7 @@ import { defaultRateLimiter } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const maxDuration = 60;
 
 // Validate environment variables at runtime
