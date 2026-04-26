@@ -1,12 +1,10 @@
 import { NextResponse } from 'next/server';
-import { validateEnvVars } from '@/lib/env';
 
 export const runtime = 'nodejs';
 
 export async function GET() {
   try {
-    // Check environment variables
-    validateEnvVars();
+    // Note: Environment variables are checked implicitly when API routes use them
 
     return NextResponse.json(
       {

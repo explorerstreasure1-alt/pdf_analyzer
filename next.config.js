@@ -47,10 +47,7 @@ const nextConfig = {
       },
     ];
   },
-  // Environment variable validation at build time
-  env: {
-    GROQ_API_KEY: process.env.GROQ_API_KEY,
-  },
+  // Note: Environment variables are accessed at runtime, not exposed at build time
 };
 
 module.exports = nextConfig;

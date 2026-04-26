@@ -2,7 +2,6 @@
  * Structured logging for production monitoring
  */
 
-// FIX #4: Changed to correct eslint-disable rule for unused enum values
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export enum LogLevel {
   DEBUG = 'DEBUG',
@@ -66,7 +65,6 @@ class Logger {
 
     switch (level) {
       case LogLevel.DEBUG:
-        // FIX #6: Added eslint-disable for console.debug in development mode
         // eslint-disable-next-line no-console
         if (this.isDevelopment) console.debug(formatted);
         break;

@@ -29,17 +29,15 @@ export function validateEnvVars(): void {
   }
 }
 
-// Validate at module load time in production
-if (process.env.NODE_ENV === 'production') {
-  validateEnvVars();
-}
+// Note: validateEnvVars() should be called at runtime, not at module load time
+// to prevent build failures when env vars are not available during build
 
 export function getEnvVar(name: EnvVarName): string {
   const value = process.env[name];
-  
+
   if (!value && requiredEnvVars[name].required) {
     throw new Error(`Missing required environment variable: ${name}`);
   }
-  
+
   return value!;
 }

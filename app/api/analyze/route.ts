@@ -3,7 +3,6 @@ import { extractTextFromPDF, validatePDFFile, validateFileSize } from '@/lib/pdf
 import { analyzePDFText } from '@/lib/groq';
 import { AnalysisResponse, AnalysisResult } from '@/types';
 import { FileSizeError, InvalidFileTypeError, PDFParseError, GroqAPIError } from '@/lib/errors';
-import { validateEnvVars } from '@/lib/env';
 import { defaultRateLimiter } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 import { withRetry } from '@/lib/retry';
@@ -11,8 +10,7 @@ import { withRetry } from '@/lib/retry';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-// Validate environment variables at runtime
-validateEnvVars();
+// Note: Environment variables are validated at runtime when Groq client is initialized
 
 export async function POST(request: NextRequest) {
   // Get client IP for rate limiting
